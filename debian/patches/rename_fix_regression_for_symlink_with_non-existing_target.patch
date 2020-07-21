@@ -1,0 +1,156 @@
+Bug-Ubuntu: https://bugs.launchpad.net/bugs/1886300
+Bug-Debian: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=966106
+Origin: upstream, https://git.kernel.org/pub/scm/utils/util-linux/util-linux.git/commit/?id=477239ce0d60384642b51c950688136fdefec815
+From: Mauricio Faria de Oliveira <mfo@canonical.com>
+Date: Tue, 7 Jul 2020 15:49:13 -0300
+Subject: rename: fix regression for symlink with non-existing target
+
+Since commit 5454df9c3110 ("rename: check source file access early")
+rename fails early for symlinks with non-existing target (regression),
+because access() dereferences the link.
+
+From access(2):
+
+  "access() checks whether the calling process can access the file pathname.
+   If pathname is a symbolic link, it is dereferenced."
+
+Thus replace access() with faccessat() and lstat() as fallback,
+(as in do_symlink()), that is equivalent for symlink and files.
+
+From fsaccess(2) and stat(2):
+
+  "The faccessat() system call operates in exactly the same way as access(),
+   except for the differences described here.
+   [...]
+   If pathname is relative and dirfd is the special value AT_FDCWD, then pathname
+   is interpreted relative to the current working directory of the calling process
+   (like access()).
+   [...]
+   AT_SYMLINK_NOFOLLOW
+     If pathname is a symbolic link, do not dereference it:
+     instead return information about the link itself."
+
+  "lstat() is identical to stat(), except that if pathname is a symbolic link, then
+   it returns information about  the  link  itself, not the file that it refers to."
+
+Testing
+-------
+
+  1) symlink with existing target
+  2) symlink with non-existing target
+  3) non-existing symlink
+  4) existing file
+  5) non-existing file
+
+Before:
+
+  $ touch file-found
+  $ ln -s file-found symlink-1
+  $ ./rename sym symbolic- symlink-1	# XPASS.
+  $ echo $?
+  0
+
+  $ ln -s file-not-found symlink-2
+  $ ./rename sym symbolic- symlink-2	# FAIL! REGRESSION.
+  rename: symlink-2: not accessible: No such file or directory
+  $ echo $?
+  1
+
+  $ ./rename sym symbolic- symlink-3	# XFAIL.
+  rename: symlink-3: not accessible: No such file or directory
+  $ echo $?
+  1
+
+  $ touch file-found
+  $ ./rename found existing file-found	# XPASS.
+  $ echo $?
+  0
+
+  $ ./rename found existing file-not-found # XFAIL.
+  rename: file-not-found: not accessible: No such file or directory
+  $ echo $?
+  1
+
+After:
+
+  $ touch file-found
+  $ ln -s file-found symlink-1
+  $ ./rename sym symbolic- symlink-1	# XPASS.
+  $ echo $?
+  0
+
+  $ ln -s file-not-found symlink-2
+  $ ./rename sym symbolic- symlink-2	# PASS! REGRESSION FIXED.
+  $ echo $?
+  0
+
+  $ ./rename sym symbolic- symlink-3	# XFAIL.
+  rename: symlink-3: not accessible: No such file or directory
+  $ echo $?
+  1
+
+  $ touch file-found
+  $ ./rename found existing file-found	# XPASS.
+  $ echo $?
+  0
+
+  $ ./rename found existing file-not-found # XFAIL.
+  rename: file-not-found: not accessible: No such file or directory
+  $ echo $?
+  1
+
+And to test/simulate faccessat()'s EINVAL for AT_SYMLINK_NOFOLLOW
+for Mac OS X, per commit 826538bf64c5 ("rename: skip faccessat()
+failure if AT_SYMLINK_NOFOLLOW is not a valid flag"), forced 'if'
+to evaluate to false so that lstat() is taken.
+
+It still fails early; the error messages are slightly different
+('not accessible' vs. 'stat of ... failed') but still tell same
+'No such file or directory'; exit code is the same as well.
+
+  $ ./rename sym symbolic- symlink-3	# XFAIL. DIFF MSG/SAME RC.
+  rename: stat of symlink-3 failed: No such file or directory
+  $ echo $?
+  1
+
+  $ ./rename found existing file-not-found # XFAIL. DIFF MSG/SAME RC.
+  rename: stat of file-not-found failed: No such file or directory
+  $ echo $?
+  1
+
+Tested on commit 2b41c409e ("Merge branch 'blkd-err' of ...")
+
+Signed-off-by: Mauricio Faria de Oliveira <mfo@canonical.com>
+---
+ misc-utils/rename.c | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+diff --git a/misc-utils/rename.c b/misc-utils/rename.c
+index d17b25abe..0f0d88322 100644
+--- a/misc-utils/rename.c
++++ b/misc-utils/rename.c
+@@ -167,12 +167,21 @@ static int do_file(char *from, char *to, char *s, int verbose, int noact,
+ {
+ 	char *newname = NULL, *file=NULL;
+ 	int ret = 1;
++	struct stat sb;
+ 
+-	if (access(s, F_OK) != 0) {
++	if ( faccessat(AT_FDCWD, s, F_OK, AT_SYMLINK_NOFOLLOW) != 0 &&
++	     errno != EINVAL )
++	   /* Skip if AT_SYMLINK_NOFOLLOW is not supported; lstat() below will
++	      detect the access error */
++	{
+ 		warn(_("%s: not accessible"), s);
+ 		return 2;
+ 	}
+ 
++	if (lstat(s, &sb) == -1) {
++		warn(_("stat of %s failed"), s);
++		return 2;
++	}
+ 	if (strchr(from, '/') == NULL && strchr(to, '/') == NULL)
+ 		file = strrchr(s, '/');
+ 	if (file == NULL)
+-- 
+cgit 1.2.3-1.el7
+

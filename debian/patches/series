@@ -1,0 +1,9 @@
+sulogin-fallback-static-sh.patch
+sulogin-lockedpwd.patch
+prevent-fstrim-inside-container.patch
+umount-completion.patch
+libblkid-xfs-log-check-for-reg-xfs-on-more-sectors.patch
+lsblk-force-to-print-PKNAME-for-partition.patch
+hwclock_fix_audit_status.patch
+hwclock-make-glibc-2.31-compatible.patch
+rename_fix_regression_for_symlink_with_non-existing_target.patch
