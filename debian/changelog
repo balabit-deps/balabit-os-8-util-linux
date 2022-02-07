@@ -1,3 +1,22 @@
+util-linux (2.34-0.1ubuntu9.3) focal-security; urgency=medium
+
+  * SECURITY UPDATE: Unauthorized unmount of FUSE filesystems belonging to
+    users with similar uid
+    - debian/patches/CVE-2021-3995-1.patch: make sure mem2strcpy() buffer
+      is zeroized in include/strutils.h.
+    - debian/patches/CVE-2021-3995-2.patch: fix UID check for FUSE umount
+      in libmount/src/context_umount.c, libmount/src/mountP.h,
+      libmount/src/optstr.c.
+    - CVE-2021-3995
+  * SECURITY UPDATE: Unauthorized unmount in util-linux's libmount
+    - debian/patches/CVE-2021-3996-1.patch: remove support for deleted
+      mount table entries in libmount/src/tab_parse.c.
+    - debian/patches/CVE-2021-3996-2.patch: update mountinfo files
+      in tests/*.
+    - CVE-2021-3996
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Mon, 07 Feb 2022 08:33:35 -0500
+
 util-linux (2.34-0.1ubuntu9.1) focal; urgency=medium
 
   * d/p/rename_fix_regression_for_symlink_with_non-existing_target.patch
