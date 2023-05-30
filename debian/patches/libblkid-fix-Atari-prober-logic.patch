@@ -1,0 +1,47 @@
+From: Karel Zak <kzak@redhat.com>
+Date: Fri, 9 Oct 2020 13:06:08 +0200
+Subject: libblkid: fix Atari prober logic
+
+Addresses: https://github.com/karelzak/util-linux/issues/1159
+Addresses: https://github.com/karelzak/util-linux/issues/1116
+Signed-off-by: Karel Zak <kzak@redhat.com>
+
+Origin: upstream, https://github.com/util-linux/util-linux/commit/2cc76d50d7a14bef8e7b07fab11b26c9e49d36a2
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/util-linux/+bug/2015355
+---
+ libblkid/src/partitions/atari.c | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/libblkid/src/partitions/atari.c b/libblkid/src/partitions/atari.c
+index 48c322670..03ec6084c 100644
+--- a/libblkid/src/partitions/atari.c
++++ b/libblkid/src/partitions/atari.c
+@@ -199,11 +199,10 @@ static int probe_atari_pt(blkid_probe pr,
+ 
+ 	hdsize = blkid_probe_get_size(pr) / 512;
+ 
+-	/* Look for validly looking primary partition */
+-	for (i = 0; ; i++) {
+-		if (i >= ARRAY_SIZE(rs->part))
+-			goto nothing;
+-
++	/*
++	 * At least one valid partition required
++	 */
++	for (i = 0; i < 4; i++) {
+ 		if (IS_PARTDEF_VALID(rs->part[i], hdsize)) {
+ 			if (blkid_probe_set_magic(pr,
+ 					offsetof(struct atari_rootsector, part[i]),
+@@ -214,6 +213,9 @@ static int probe_atari_pt(blkid_probe pr,
+ 		}
+ 	}
+ 
++	if (i == 4)
++		goto nothing;
++
+ 	if (blkid_partitions_need_typeonly(pr))
+ 		/* caller does not ask for details about partitions */
+ 		return BLKID_PROBE_OK;
+-- 
+2.39.2
+

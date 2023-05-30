@@ -11,3 +11,7 @@ CVE-2021-3995-1.patch
 CVE-2021-3995-2.patch
 CVE-2021-3996-1.patch
 CVE-2021-3996-2.patch
+libblkid-fix-Atari-prober-logic.patch
+libblkid-make-Atari-more-robust.patch
+tests-update-atari-partx-tests.patch
+tests-update-atari-blkid-tests.patch

@@ -1,0 +1,83 @@
+From 0d061b6e68bc74ce7d61524097b5d0f3becee437 Mon Sep 17 00:00:00 2001
+From: Karel Zak <kzak@redhat.com>
+Date: Tue, 13 Oct 2020 16:29:19 +0200
+Subject: [PATCH] tests: update atari blkid tests
+
+Origin: upstream, https://github.com/util-linux/util-linux/commit/0d061b6e68bc74ce7d61524097b5d0f3becee437
+Bug-Ubuntu: https://launchpad.net/bugs/2015355
+
+Note for Ubuntu: The original binary diff in the upstream commit cannot be
+represented in this patch. For the complete removal of atari-icd.img.xz,
+instead patch the test script to skip the test using that data. For the changes
+in atari-primary.img.xz and atari-xgm.img.xz, the changes are made in the
+tarball using debian/source/include-binaries.
+
+The old images of the atari label are truncated and in-table stored
+sizes do not match with real images sizes -- libblkid checks it now.
+
+I have no idea how to generate ICD format, let's ignore it in tests
+for now.
+
+Signed-off-by: Karel Zak <kzak@redhat.com>
+---
+ tests/expected/blkid/lowprobe-pt-atari-icd     |   8 --------
+ tests/expected/blkid/lowprobe-pt-atari-primary |   3 +++
+ tests/expected/blkid/lowprobe-pt-atari-xgm     |  10 +++-------
+
+--- a/tests/expected/blkid/lowprobe-pt-atari-icd
++++ /dev/null
+@@ -1,8 +0,0 @@
+-size: 8388608, sector size: 512, PT: atari, offset: 0, id=(null)
+----
+-#1:         65       4032  0x0 type='FAT'
+-#2:       4097        904  0x0 type='FOO'
+-#4:      12289       4096  0x0 type='BAR'
+-#5:       5002       1999  0x0 type='GEM'
+-#6:       7003       3238  0x0 type='RAW'
+-#7:      10241       2048  0x0 type='RAW'
+--- /dev/null
++++ b/tests/expected/blkid/lowprobe-pt-atari-primary
+@@ -0,0 +1,3 @@
++size: 5242880, sector size: 512, PT: atari, offset: 0, id=(null)
++---
++#1:          2      10238  0x0 type='RAW'
+--- a/tests/expected/blkid/lowprobe-pt-atari-xgm
++++ b/tests/expected/blkid/lowprobe-pt-atari-xgm
+@@ -1,8 +1,4 @@
+-size: 8388608, sector size: 512, PT: atari, offset: 0, id=(null)
++size: 5242880, sector size: 512, PT: atari, offset: 0, id=(null)
+ ---
+-#1:         65       4032  0x0 type='FAT'
+-#2:       4097        904  0x0 type='FOO'
+-#3:       5002       1999  0x0 type='GEM'
+-#4:       7003       3238  0x0 type='RAW'
+-#5:      10241       2048  0x0 type='RAW'
+-#6:      12289       4096  0x0 type='BAR'
++#1:          2          9  0x0 type='RAW'
++#2:         14      10226  0x0 type='RAW'
+--- a/tests/ts/blkid/lowprobe-pt
++++ b/tests/ts/blkid/lowprobe-pt
+@@ -30,6 +30,10 @@
+ 
+ for img in $(ls $TS_SELF/images-pt/*.img.xz | sort); do
+ 	name=$(basename $img .img.xz)
++	if [[ "$name" == "atari-icd" ]]; then
++            continue
++	fi
++
+ 	outimg=$TS_OUTDIR/images-pt/${name}.img
+ 
+ 	ts_init_subtest $name
+--- a/tests/ts/partx/partx-image
++++ b/tests/ts/partx/partx-image
+@@ -29,6 +29,10 @@
+ mkdir -p $TS_OUTDIR/images-pt
+ for img in $TS_IMGDIR/*.img.xz; do
+ 	name=$(basename $img .img.xz)
++	if [[ "$name" == "atari-icd" ]]; then
++            continue
++	fi
++
+ 	outimg=$TS_OUTDIR/images-pt/${name}.img
+ 
+ 	ts_init_subtest $name
