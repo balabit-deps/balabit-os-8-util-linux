@@ -1,3 +1,20 @@
+util-linux (2.34-0.1ubuntu9.5) focal-security; urgency=medium
+
+  * SECURITY UPDATE: Improper neutralization of escape sequences in wall
+    - debian/patches/CVE-2024-28085-pre1.patch: correctly handle wide
+      characters in include/carefulputc.h, login-utils/last.c,
+      term-utils/write.c, libsmartcols/src/fput.c.
+    - debian/patches/CVE-2024-28085-pre2.patch: convert homebrew buffering
+      to open_memstream() in term-utils/wall.c.
+    - debian/patches/CVE-2024-28085-pre3.patch: use fputs_careful() in
+      include/carefulputc.h, login-utils/last.c, term-utils/wall.c,
+      term-utils/write.c.
+    - debian/patches/CVE-2024-28085.patch: consolidate output on the
+      terminal in term-utils/wall.c.
+    - CVE-2024-28085
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Fri, 22 Mar 2024 08:37:10 -0400
+
 util-linux (2.34-0.1ubuntu9.4) focal; urgency=medium
 
   * Fix false atari partition detection (LP: #2015355):
